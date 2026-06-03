@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.socialdept.telegram</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/kirtipandey/social-media-dept/.venv/bin/python</string>
+    <string>/Users/kirtipandey/social-media-dept/workers/telegram_bot.py</string>
+  </array>
+  <key>WorkingDirectory</key><string>/Users/kirtipandey/social-media-dept</string>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>StandardOutPath</key><string>/tmp/socialdept-telegram.log</string>
+  <key>StandardErrorPath</key><string>/tmp/socialdept-telegram.err</string>
+</dict>
+</plist>
