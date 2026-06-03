@@ -7,7 +7,10 @@ from dashboard.db_helpers import get_suggested_topics
 st.title("🪝 Hooks — Peter (Employee 2)")
 
 # Suggested topics from research
-suggestions = get_suggested_topics(limit=8)
+try:
+    suggestions = get_suggested_topics(limit=8)
+except Exception:
+    suggestions = []
 selected_suggestion = None
 if suggestions:
     st.markdown("**💡 Suggested topics from Chad's research:**")
