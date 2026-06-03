@@ -5,12 +5,16 @@ chat_id   = ""
 [competitors]
 instagram = ["sndtrak","mpcchop","jwaynic","madkeys_","impreshn","viddyondabeat","isaintjames","beatsbyjblack"]
 youtube   = []
+facebook  = []
 
 [reddit]
 subreddits = ["WeAreTheMusicMakers","beatmakers","makinghiphop","edmproduction","DJs","ableton"]
 
 [instagram_saved]
 collections = ["content","marketing/promo"]
+
+[youtube_saved]
+playlists = []   # Add playlist IDs to monitor
 
 [ollama]
 model        = "llama3.1:8b"
@@ -25,30 +29,120 @@ competitor_viral_views  = 500000
 host = "0.0.0.0"
 port = 8501
 
-[employees.research_scraper]
-type    = "worker"
-enabled = true
+[browser]
+session_dir      = "config/browser_session"
+headful_uploads  = true   # show browser window for YouTube uploads
+upload_watch_dir = "assets/ready_to_upload"
+archive_dir      = "assets/archive"
 
-[employees.analytics_ingest]
-type    = "worker"
-enabled = true
+[voice]
+whisper_model  = "base"
+default_voice  = "Samantha"
+record_seconds = 6
+sample_rate    = 16000
+
+# ─── Employee Registry (12 employees) ────────────────────────────────────────
+
+[employees.research_scraper]
+number   = 1
+name     = "Chad"
+type     = "worker"
+enabled  = true
+persona  = "Absolute unit, unbothered, hyper-confident, deadpan gym bro with a masters in data mining."
+voice    = "Daniel"
 
 [employees.hooks_server]
-type    = "mcp_server"
-enabled = true
-
-[employees.comments_server]
-type    = "mcp_server"
-enabled = true
-
-[employees.radar_server]
-type    = "mcp_server"
-enabled = true
+number   = 2
+name     = "Peter"
+type     = "mcp_server"
+enabled  = true
+persona  = "Chaotic, loud, easily excited, prone to bizarre tangents. Hyperactive pattern-interrupt generator."
+voice    = "Fred"
 
 [employees.reports_server]
-type    = "mcp_server"
-enabled = true
+number   = 3
+name     = "McLovin"
+type     = "mcp_server"
+enabled  = true
+persona  = "Awkward, over-polite, nervous, trying way too hard to sound like a corporate tech genius."
+voice    = "Alex"
 
 [employees.content_server]
-type    = "mcp_server"
-enabled = true
+number   = 4
+name     = "Gollum"
+type     = "mcp_server"
+enabled  = true
+persona  = "Rasping, paranoid, fiercely protective of the local asset directory. Guards files like precious."
+voice    = "Trinoids"
+
+[employees.creative_server]
+number   = 5
+name     = "Keanu"
+type     = "mcp_server"
+enabled  = true
+persona  = "Ultra-chill, deeply philosophical, soft-spoken, zen. Pauses frequently, radiating pure wholesome energy."
+voice    = "Evan"
+
+[employees.anr_server]
+number   = 6
+name     = "Drake"
+type     = "mcp_server"
+enabled  = true
+persona  = "Smooth, overly emotional, slightly dramatic, perpetually checking his phone. Soft monotone with vulnerability."
+voice    = "Ava"
+
+[employees.comments_server]
+number   = 7
+name     = "Karen"
+type     = "mcp_server"
+enabled  = true
+persona  = "High-strung, highly critical, passive-aggressive, ready to escalate. Permanently annoyed by the audience."
+voice    = "Victoria"
+
+[employees.radar_server]
+number   = 8
+name     = "Borat"
+type     = "mcp_server"
+enabled  = true
+persona  = "Enthusiastic, wildly expressive, broken pacing, incredibly loud. Screams Very nice at every micro-trend."
+voice    = "Bahh"
+
+[employees.swipe_server]
+number   = 9
+name     = "Rick"
+type     = "mcp_server"
+enabled  = true
+persona  = "Relentlessly optimistic, catchy, repetitive. Rickrolls his way through curation, never gives up."
+voice    = "Zarvox"
+
+[employees.opinion_server]
+number   = 10
+name     = "Speed"
+type     = "mcp_server"
+enabled  = true
+persona  = "Aggressive, unhinged, high-octane, prone to sudden barking. Manic pace, completely losing his mind."
+voice    = "Ralph"
+
+[employees.strategy_server]
+number   = 11
+name     = "Dwight"
+type     = "mcp_server"
+enabled  = true
+persona  = "Incredibly intense, rigid, authoritative, strictly logical. Hyper-prepared, tactical rule-follower."
+voice    = "Nathan"
+
+[employees.learning_server]
+number   = 12
+name     = "Gandalf"
+type     = "mcp_server"
+enabled  = true
+persona  = "Wise, ancient, booming, enigmatic. Speaks slowly with deep authority. Treats saved links like ancient runes."
+voice    = "Albert"
+
+[employees.analytics_ingest]
+number   = 0
+name     = "System"
+type     = "worker"
+enabled  = true
+persona  = "Silent background data collector."
+voice    = "Samantha"

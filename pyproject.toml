@@ -20,6 +20,12 @@ dependencies = [
     "scikit-learn>=1.4",
     "nltk>=3.8",
     "ollama>=0.2",
+    "matplotlib>=3.8",
+    "seaborn>=0.13",
+    "sounddevice>=0.4",
+    "soundfile>=0.12",
+    # openai-whisper installed separately via pip in install.sh (packaging incompatible with uv on macos_26_0_x86_64)
+    "watchdog>=4.0",
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
     "pytest-mock>=3.14",

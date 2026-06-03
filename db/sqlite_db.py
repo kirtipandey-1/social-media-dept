@@ -123,6 +123,78 @@ def init_schema(conn: sqlite3.Connection) -> None:
         last_run_at TIMESTAMP,
         last_status TEXT
     );
+    -- ── Expansion tables ─────────────────────────────────────────────────────
+    CREATE TABLE IF NOT EXISTS hook_performance (
+        id INTEGER PRIMARY KEY,
+        hook_text TEXT NOT NULL,
+        date_posted DATE,
+        platform TEXT,
+        post_url TEXT,
+        views INTEGER DEFAULT 0,
+        reach INTEGER DEFAULT 0,
+        shares INTEGER DEFAULT 0,
+        saves INTEGER DEFAULT 0,
+        comments INTEGER DEFAULT 0,
+        likes INTEGER DEFAULT 0,
+        followers_gained INTEGER DEFAULT 0,
+        engagement_rate REAL DEFAULT 0.0,
+        view_velocity REAL DEFAULT 0.0,
+        recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS swipe_file (
+        id INTEGER PRIMARY KEY,
+        source_url TEXT UNIQUE NOT NULL,
+        platform TEXT,
+        collection TEXT,
+        hook_text TEXT,
+        topic TEXT,
+        creator_handle TEXT,
+        content_format TEXT,
+        emotional_trigger TEXT,
+        narrative_style TEXT,
+        date_saved TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        personal_rating INTEGER DEFAULT 0,
+        notes TEXT,
+        analyzed INTEGER DEFAULT 0,
+        chroma_id TEXT
+    );
+    CREATE TABLE IF NOT EXISTS opinion_topics (
+        id INTEGER PRIMARY KEY,
+        topic TEXT NOT NULL,
+        type TEXT DEFAULT 'question',
+        source TEXT,
+        relevance_score REAL DEFAULT 0.0,
+        generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        used INTEGER DEFAULT 0
+    );
+    CREATE TABLE IF NOT EXISTS upload_queue (
+        id INTEGER PRIMARY KEY,
+        file_path TEXT NOT NULL,
+        metadata_path TEXT,
+        platform TEXT DEFAULT 'youtube',
+        title TEXT,
+        description TEXT,
+        tags TEXT,
+        publish_at TIMESTAMP,
+        status TEXT DEFAULT 'pending',
+        uploaded_at TIMESTAMP,
+        youtube_id TEXT,
+        error_msg TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS employee_activity_log (
+        id INTEGER PRIMARY KEY,
+        employee TEXT NOT NULL,
+        action TEXT NOT NULL,
+        detail TEXT,
+        logged_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS daily_briefs (
+        id INTEGER PRIMARY KEY,
+        body_md TEXT NOT NULL,
+        generated_by TEXT DEFAULT 'Dwight',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
     """)
     conn.commit()
 
