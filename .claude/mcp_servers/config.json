@@ -1,0 +1,29 @@
+{
+  "mcpServers": {
+    "hooks": {
+      "command": "uv",
+      "args": ["run", "python", "mcp_servers/hooks_server.py"],
+      "cwd": "/Users/kirtipandey/social-media-dept"
+    },
+    "comments": {
+      "command": "uv",
+      "args": ["run", "python", "mcp_servers/comments_server.py"],
+      "cwd": "/Users/kirtipandey/social-media-dept"
+    },
+    "radar": {
+      "command": "uv",
+      "args": ["run", "python", "mcp_servers/radar_server.py"],
+      "cwd": "/Users/kirtipandey/social-media-dept"
+    },
+    "reports": {
+      "command": "uv",
+      "args": ["run", "python", "mcp_servers/reports_server.py"],
+      "cwd": "/Users/kirtipandey/social-media-dept"
+    },
+    "content": {
+      "command": "uv",
+      "args": ["run", "python", "mcp_servers/content_server.py"],
+      "cwd": "/Users/kirtipandey/social-media-dept"
+    }
+  }
+}
