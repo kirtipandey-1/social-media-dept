@@ -5,8 +5,9 @@ requires-python = ">=3.11"
 dependencies = [
     "playwright>=1.44",
     "feedparser>=6.0",
-    "chromadb>=0.5",
-    "fastembed>=0.3",
+    "chromadb>=0.4,<0.5",
+    "onnxruntime>=1.14,<1.21",  # 1.21+ dropped macOS x86_64; pin for macos_26_0_x86_64 compat
+    # fastembed removed — onnxruntime has no x86_64 macOS wheel; ChromaDB default embeddings used instead
     "duckdb>=1.0",
     "anthropic>=0.93",
     "mcp>=1.0",
