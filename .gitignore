@@ -1,0 +1,9 @@
+config/settings.toml
+config/cookies/
+*.duckdb
+__pycache__/
+.venv/
+*.pyc
+.env
+*.log
+.DS_Store
