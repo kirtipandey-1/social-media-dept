@@ -2,52 +2,101 @@
   "mcpServers": {
     "hooks": {
       "command": "uv",
-      "args": ["run", "python", "mcp_servers/hooks_server.py"],
+      "args": [
+        "run",
+        "python",
+        "mcp_servers/hooks_server.py"
+      ],
       "cwd": "/Users/kirtipandey/social-media-dept"
     },
     "comments": {
       "command": "uv",
-      "args": ["run", "python", "mcp_servers/comments_server.py"],
+      "args": [
+        "run",
+        "python",
+        "mcp_servers/comments_server.py"
+      ],
       "cwd": "/Users/kirtipandey/social-media-dept"
     },
     "radar": {
       "command": "uv",
-      "args": ["run", "python", "mcp_servers/radar_server.py"],
+      "args": [
+        "run",
+        "python",
+        "mcp_servers/radar_server.py"
+      ],
       "cwd": "/Users/kirtipandey/social-media-dept"
     },
     "reports": {
       "command": "uv",
-      "args": ["run", "python", "mcp_servers/reports_server.py"],
+      "args": [
+        "run",
+        "python",
+        "mcp_servers/reports_server.py"
+      ],
       "cwd": "/Users/kirtipandey/social-media-dept"
     },
     "content": {
       "command": "uv",
-      "args": ["run", "python", "mcp_servers/content_server.py"],
+      "args": [
+        "run",
+        "python",
+        "mcp_servers/content_server.py"
+      ],
       "cwd": "/Users/kirtipandey/social-media-dept"
     },
     "browser": {
       "command": "uv",
-      "args": ["run", "python", "mcp_servers/browser_mcp.py"],
+      "args": [
+        "run",
+        "python",
+        "mcp_servers/browser_mcp.py"
+      ],
       "cwd": "/Users/kirtipandey/social-media-dept"
     },
     "swipe": {
       "command": "uv",
-      "args": ["run", "python", "mcp_servers/swipe_server.py"],
+      "args": [
+        "run",
+        "python",
+        "mcp_servers/swipe_server.py"
+      ],
       "cwd": "/Users/kirtipandey/social-media-dept"
     },
     "opinion": {
       "command": "uv",
-      "args": ["run", "python", "mcp_servers/opinion_server.py"],
+      "args": [
+        "run",
+        "python",
+        "mcp_servers/opinion_server.py"
+      ],
       "cwd": "/Users/kirtipandey/social-media-dept"
     },
     "strategy": {
       "command": "uv",
-      "args": ["run", "python", "mcp_servers/strategy_server.py"],
+      "args": [
+        "run",
+        "python",
+        "mcp_servers/strategy_server.py"
+      ],
       "cwd": "/Users/kirtipandey/social-media-dept"
     },
     "learning": {
       "command": "uv",
-      "args": ["run", "python", "mcp_servers/learning_server.py"],
+      "args": [
+        "run",
+        "python",
+        "mcp_servers/learning_server.py"
+      ],
+      "cwd": "/Users/kirtipandey/social-media-dept"
+    },
+    "voice": {
+      "command": "uv",
+      "args": [
+        "run",
+        "python",
+        "mcp_servers/voice_server.py"
+      ],
       "cwd": "/Users/kirtipandey/social-media-dept"
     }
   }
