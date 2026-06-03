@@ -6,15 +6,20 @@ from dashboard.db_helpers import get_competitor_posts, get_recent_reddit, get_re
 
 st.title("🔍 Research — Chad (Employee 1)")
 
-if st.button("🔄 Run Research Now"):
-    with st.spinner("Chad is scraping... (may take 2-3 mins)"):
-        from workers.research_scraper import ResearchScraper
-        try:
-            result = ResearchScraper().execute()
-            st.success(f"Done: {result}")
-            st.cache_data.clear()
-        except Exception as e:
-            st.error(f"Error: {e}")
+import os
+_is_cloud = os.environ.get("HOME", "").startswith("/home/")
+if _is_cloud:
+    st.info("🖥️ Research scraping runs automatically at 3am on your Mac. Data shown below is from the last pipeline run.")
+else:
+    if st.button("🔄 Run Research Now"):
+        with st.spinner("Chad is scraping... (may take 2-3 mins)"):
+            from workers.research_scraper import ResearchScraper
+            try:
+                result = ResearchScraper().execute()
+                st.success(f"Done: {result}")
+                st.cache_data.clear()
+            except Exception as e:
+                st.error(f"Error: {e}")
 
 tab1, tab2, tab3 = st.tabs(["Competitor Feed", "Reddit Intel", "Trends"])
 

@@ -28,7 +28,12 @@ with col1:
 with col2:
     count = st.slider("Count", 5, 50, 25)
 
-if st.button("⚡ Generate Hooks", type="primary"):
+import os as _os
+_is_cloud = _os.environ.get("HOME", "").startswith("/home/")
+if _is_cloud:
+    st.info("⚠️ Hook generation requires Ollama on your Mac. Browse saved hooks below.")
+
+if not _is_cloud and st.button("⚡ Generate Hooks", type="primary"):
     if not topic:
         st.warning("Enter a topic first.")
     else:

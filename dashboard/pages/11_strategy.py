@@ -18,7 +18,9 @@ if st.button("⚡ Generate Daily Brief", type="primary"):
             from mcp_servers.reports_server import generate_daily_report
             brief = generate_daily_report()
             st.cache_data.clear()
-            st.success("Report generated (strategy_server coming soon)!")
+            st.success("Report generated!")
+        except ConnectionError:
+            st.warning("⚠️ AI generation requires Ollama running locally on your Mac. Brief generation only works when accessed from your Mac.")
 
 st.markdown("---")
 brief = get_latest_daily_brief()
