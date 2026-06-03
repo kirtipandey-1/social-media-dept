@@ -7,3 +7,5 @@ __pycache__/
 .env
 *.log
 .DS_Store
+db/social.db
+db/analytics.duckdb
