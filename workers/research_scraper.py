@@ -86,6 +86,7 @@ def parse_post_element(el: dict) -> dict:
         "post_url":      el.get("url", ""),
         "caption":       el.get("caption", ""),
         "thumbnail_url": el.get("thumbnail_url", ""),
+        "ai_analysis":   el.get("ai_analysis", ""),
         "views":         to_int(el.get("views", 0)),
         "likes": to_int(el.get("likes", 0)),
         "comments": to_int(el.get("comments", 0)),
