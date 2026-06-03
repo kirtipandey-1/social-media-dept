@@ -119,3 +119,27 @@ def get_employee_activity(limit=30):
     FROM employee_activity_log ORDER BY logged_at DESC LIMIT ?
     """, (limit,)).fetchall()
     return [dict(r) for r in rows]
+
+@st.cache_data(ttl=120)
+def get_suggested_topics(limit=10) -> list:
+    """Return suggested hook topics from recent Reddit + trends data."""
+    conn = get_connection()
+    trend_rows = conn.execute("""
+    SELECT topic FROM trends
+    ORDER BY detected_at DESC LIMIT 20
+    """).fetchall()
+    reddit_rows = conn.execute("""
+    SELECT title FROM reddit_posts
+    WHERE scraped_at > datetime('now','-7 days')
+    ORDER BY upvotes DESC LIMIT 30
+    """).fetchall()
+    topics = []
+    for r in trend_rows:
+        t = r[0].strip() if r[0] else ""
+        if t and t not in topics:
+            topics.append(t)
+    for r in reddit_rows:
+        t = (r[0] or "").strip()[:60]
+        if t and t not in topics:
+            topics.append(t)
+    return topics[:limit]
