@@ -6,11 +6,11 @@
   <key>Label</key><string>com.socialdept.weekly</string>
   <key>ProgramArguments</key>
   <array>
-    <string>__PROJECT_DIR__/.venv/bin/python</string>
-    <string>__PROJECT_DIR__/workers/notifier.py</string>
+    <string>/Users/kirtipandey/social-media-dept/.venv/bin/python</string>
+    <string>/Users/kirtipandey/social-media-dept/workers/notifier.py</string>
     <string>weekly</string>
   </array>
-  <key>WorkingDirectory</key><string>__PROJECT_DIR__</string>
+  <key>WorkingDirectory</key><string>/Users/kirtipandey/social-media-dept</string>
   <key>StartCalendarInterval</key>
   <dict>
     <key>Weekday</key><integer>5</integer>
