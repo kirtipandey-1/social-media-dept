@@ -1,0 +1,123 @@
+"""Research scraper worker — Reddit RSS + Instagram Playwright."""
+import feedparser
+import logging
+from datetime import datetime
+from time import mktime
+
+log = logging.getLogger("research_scraper")
+
+
+def fetch_reddit_rss(subreddit: str, limit: int = 25) -> list:
+    """Fetch top posts from a subreddit via RSS (no credentials needed)."""
+    url = f"https://www.reddit.com/r/{subreddit}/hot.rss?limit={limit}"
+    feed = feedparser.parse(url)
+    posts = []
+    for entry in feed.entries[:limit]:
+        link = getattr(entry, "link", "")
+        if "/comments/" in link:
+            reddit_id = link.rstrip("/").split("/comments/")[-1].split("/")[0]
+        else:
+            reddit_id = getattr(entry, "id", link).split("/")[-1]
+
+        pt = getattr(entry, "published_parsed", None)
+        posted_at = datetime.fromtimestamp(mktime(pt)).isoformat() if pt else None
+        posts.append({
+            "reddit_id": reddit_id,
+            "subreddit": subreddit,
+            "title": getattr(entry, "title", ""),
+            "body": getattr(entry, "summary", ""),
+            "url": link,
+            "upvotes": 0,
+            "num_comments": 0,
+            "posted_at": posted_at,
+        })
+    return posts
+
+
+def save_reddit_posts(conn, posts: list) -> int:
+    """Persist Reddit posts to SQLite. Returns count saved."""
+    saved = 0
+    for p in posts:
+        try:
+            conn.execute("""
+            INSERT OR IGNORE INTO reddit_posts
+                (reddit_id, subreddit, title, body, url, upvotes, num_comments, posted_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, [p["reddit_id"], p["subreddit"], p["title"], p["body"],
+                  p["url"], p.get("upvotes", 0), p.get("num_comments", 0),
+                  p.get("posted_at")])
+            saved += 1
+        except Exception as e:
+            log.warning("Skip reddit post %s: %s", p.get("reddit_id"), e)
+    conn.commit()
+    return saved
+
+
+import re
+from pathlib import Path
+from playwright.sync_api import sync_playwright
+
+COOKIES_PATH = Path.home() / "social-media-dept" / "config" / "cookies" / "instagram.json"
+
+
+def parse_post_element(el: dict) -> dict:
+    """Parse a dict of raw scraped values into normalised post data."""
+    def to_int(v):
+        if not v:
+            return 0
+        v = str(v).replace(",", "").replace(" ", "")
+        m = re.match(r"([\d.]+)([KkMm]?)", v)
+        if not m:
+            return 0
+        n, suffix = float(m.group(1)), m.group(2).upper()
+        return int(n * {"K": 1000, "M": 1_000_000}.get(suffix, 1))
+
+    return {
+        "post_url": el.get("url", ""),
+        "caption": el.get("caption", ""),
+        "views": to_int(el.get("views", 0)),
+        "likes": to_int(el.get("likes", 0)),
+        "comments": to_int(el.get("comments", 0)),
+        "saves": to_int(el.get("saves", 0)),
+    }
+
+
+def scrape_competitor_profile(handle: str, limit: int = 12) -> list:
+    """Scrape public posts from a competitor Instagram profile via Playwright."""
+    posts = []
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        ctx_kwargs = {}
+        if COOKIES_PATH.exists():
+            ctx_kwargs["storage_state"] = str(COOKIES_PATH)
+        ctx = browser.new_context(**ctx_kwargs)
+        page = ctx.new_page()
+        try:
+            page.goto(
+                f"https://www.instagram.com/{handle}/",
+                wait_until="networkidle",
+                timeout=30000
+            )
+            # Detect cookie expiry (redirect to login)
+            if "accounts/login" in page.url:
+                raise RuntimeError(
+                    f"Instagram session expired. Run scripts/export_cookies.sh"
+                )
+            links = page.eval_on_selector_all(
+                "article a[href*='/p/']",
+                "els => els.map(e => e.href)"
+            )[:limit]
+
+            for url in links:
+                try:
+                    page.goto(url, wait_until="networkidle", timeout=20000)
+                    caption_el = page.query_selector(
+                        "h1, [data-testid='post-comment-root'] span"
+                    )
+                    caption = caption_el.inner_text() if caption_el else ""
+                    posts.append(parse_post_element({"url": url, "caption": caption}))
+                except Exception as e:
+                    log.warning("Error scraping %s: %s", url, e)
+        finally:
+            browser.close()
+    return posts
