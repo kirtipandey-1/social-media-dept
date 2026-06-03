@@ -21,9 +21,10 @@ def get_recent_trends(limit=20):
 def get_competitor_posts(limit=30):
     conn = get_connection()
     rows = conn.execute("""
-    SELECT c.handle, cp.post_url, cp.caption, cp.views, cp.likes, cp.scraped_at
+    SELECT c.handle, cp.post_url, cp.caption, cp.views, cp.likes,
+           cp.thumbnail_url, cp.ai_analysis, cp.scraped_at
     FROM competitor_posts cp JOIN competitors c ON cp.competitor_id=c.id
-    ORDER BY cp.scraped_at DESC LIMIT ?
+    ORDER BY cp.views DESC, cp.scraped_at DESC LIMIT ?
     """, (limit,)).fetchall()
     return [dict(r) for r in rows]
 

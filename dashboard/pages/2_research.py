@@ -22,9 +22,20 @@ with tab1:
     posts = get_competitor_posts(30)
     if posts:
         for p in posts:
-            with st.expander(f"@{p['handle']} — {p['views'] or 0:,} views"):
-                st.write(p.get("caption","")[:300])
-                st.caption(p.get("scraped_at",""))
+            label = f"@{p['handle']} — {p['views'] or 0:,} views"
+            with st.expander(label):
+                col_img, col_text = st.columns([1, 2])
+                with col_img:
+                    if p.get("thumbnail_url"):
+                        st.image(p["thumbnail_url"], use_container_width=True)
+                    else:
+                        st.caption("No thumbnail")
+                with col_text:
+                    st.write(p.get("caption", "")[:300])
+                    if p.get("ai_analysis"):
+                        st.markdown("**🤖 Why it's working:**")
+                        st.info(p["ai_analysis"])
+                    st.caption(f"Scraped: {p.get('scraped_at','')}")
     else:
         st.info("No competitor data yet. Click 'Run Research Now'.")
 

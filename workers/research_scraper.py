@@ -83,9 +83,10 @@ def parse_post_element(el: dict) -> dict:
         return int(n * {"K": 1000, "M": 1_000_000}.get(suffix, 1))
 
     return {
-        "post_url": el.get("url", ""),
-        "caption": el.get("caption", ""),
-        "views": to_int(el.get("views", 0)),
+        "post_url":      el.get("url", ""),
+        "caption":       el.get("caption", ""),
+        "thumbnail_url": el.get("thumbnail_url", ""),
+        "views":         to_int(el.get("views", 0)),
         "likes": to_int(el.get("likes", 0)),
         "comments": to_int(el.get("comments", 0)),
         "saves": to_int(el.get("saves", 0)),
@@ -111,9 +112,10 @@ def save_competitor_posts(conn, handle: str, posts: list) -> int:
         try:
             conn.execute("""
             INSERT OR IGNORE INTO competitor_posts
-                (competitor_id, post_url, caption, views, likes, comments, saves)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+                (competitor_id, post_url, caption, thumbnail_url, ai_analysis, views, likes, comments, saves)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, [competitor_id, p["post_url"], p.get("caption", ""),
+                  p.get("thumbnail_url", ""), p.get("ai_analysis", ""),
                   p.get("views", 0), p.get("likes", 0),
                   p.get("comments", 0), p.get("saves", 0)])
             saved += 1
@@ -161,7 +163,39 @@ def scrape_competitor_profile(handle: str, limit: int = 12) -> list:
                         "h1, [data-testid='post-comment-root'] span"
                     )
                     caption = caption_el.inner_text() if caption_el else ""
-                    posts.append(parse_post_element({"url": url, "caption": caption}))
+
+                    # Grab og:image as thumbnail
+                    thumb = page.evaluate(
+                        "() => document.querySelector('meta[property=\"og:image\"]')?.content || ''"
+                    )
+
+                    # AI analysis via llava if thumbnail available
+                    ai_analysis = ""
+                    if thumb:
+                        try:
+                            from mcp_servers.base_server import get_vision_model
+                            import ollama as _ollama
+                            resp = _ollama.chat(
+                                model=get_vision_model(),
+                                messages=[{
+                                    "role": "user",
+                                    "content": (
+                                        f"This is a screenshot of a viral music producer video with caption: '{caption[:200]}'. "
+                                        "In 2-3 sentences: why is this video performing well? What hook/technique makes it work?"
+                                    ),
+                                    "images": [thumb],
+                                }]
+                            )
+                            ai_analysis = resp.message.content
+                        except Exception as e:
+                            log.warning("llava analysis failed for %s: %s", url, e)
+
+                    posts.append(parse_post_element({
+                        "url": url,
+                        "caption": caption,
+                        "thumbnail_url": thumb,
+                        "ai_analysis": ai_analysis,
+                    }))
                 except Exception as e:
                     log.warning("Error scraping %s: %s", url, e)
         finally:

@@ -31,6 +31,8 @@ def init_schema(conn: sqlite3.Connection) -> None:
         likes INTEGER,
         comments INTEGER,
         saves INTEGER,
+        thumbnail_url TEXT,
+        ai_analysis TEXT,
         posted_at TIMESTAMP,
         scraped_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
@@ -197,6 +199,14 @@ def init_schema(conn: sqlite3.Connection) -> None:
     );
     """)
     conn.commit()
+
+    # Migrations — safe to re-run
+    for col, coltype in [("thumbnail_url", "TEXT"), ("ai_analysis", "TEXT")]:
+        try:
+            conn.execute(f"ALTER TABLE competitor_posts ADD COLUMN {col} {coltype}")
+            conn.commit()
+        except Exception:
+            pass  # column already exists
 
 def seed_competitors(conn: sqlite3.Connection, handles: list, platform: str) -> None:
     conn.executemany(
