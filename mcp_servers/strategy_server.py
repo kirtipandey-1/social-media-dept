@@ -17,68 +17,77 @@ Be specific, prioritized, and direct. No fluff. Every recommendation must have a
 def _gather_all_intelligence(conn) -> str:
     """Aggregate data from all employees for the brief."""
     sections = []
+    cur = conn.cursor()
 
     # Chad (Research): recent trends + competitor posts
-    trends = conn.execute("""
+    cur.execute("""
     SELECT topic, signal_strength FROM trends
     ORDER BY detected_at DESC LIMIT 5
-    """).fetchall()
+    """)
+    trends = cur.fetchall()
     if trends:
-        sections.append("TRENDS (Chad): " + ", ".join(f"{t[0]}({t[1] or 0:.1f})" for t in trends))
+        sections.append("TRENDS (Chad): " + ", ".join(f"{t['topic']}({t['signal_strength'] or 0:.1f})" for t in trends))
 
-    comp_posts = conn.execute("""
+    cur.execute("""
     SELECT c.handle, cp.views FROM competitor_posts cp
     JOIN competitors c ON cp.competitor_id=c.id
     ORDER BY cp.scraped_at DESC LIMIT 3
-    """).fetchall()
+    """)
+    comp_posts = cur.fetchall()
     if comp_posts:
-        sections.append("COMPETITORS (Chad): " + ", ".join(f"@{p[0]} {p[1] or 0} views" for p in comp_posts))
+        sections.append("COMPETITORS (Chad): " + ", ".join(f"@{p['handle']} {p['views'] or 0} views" for p in comp_posts))
 
     # Peter (Hooks): top hooks
-    top_hooks = conn.execute("""
+    cur.execute("""
     SELECT title FROM reddit_posts ORDER BY upvotes DESC LIMIT 3
-    """).fetchall()
+    """)
+    top_hooks = cur.fetchall()
     if top_hooks:
-        sections.append("HOT TOPICS (Peter): " + " | ".join(h[0][:60] for h in top_hooks))
+        sections.append("HOT TOPICS (Peter): " + " | ".join(h['title'][:60] for h in top_hooks))
 
     # McLovin (Reports): recent performance
-    latest_report = conn.execute("""
+    cur.execute("""
     SELECT body_md FROM reports WHERE type='daily' ORDER BY created_at DESC LIMIT 1
-    """).fetchone()
+    """)
+    latest_report = cur.fetchone()
     if latest_report:
-        sections.append(f"PERFORMANCE (McLovin): {latest_report[0][:300]}...")
+        sections.append(f"PERFORMANCE (McLovin): {latest_report['body_md'][:300]}...")
 
     # Karen (Comments): pain points
-    pain_points = conn.execute("""
+    cur.execute("""
     SELECT insight FROM comment_insights WHERE category='pain_point'
     ORDER BY frequency DESC LIMIT 3
-    """).fetchall()
+    """)
+    pain_points = cur.fetchall()
     if pain_points:
-        sections.append("AUDIENCE PAIN (Karen): " + " | ".join(p[0] for p in pain_points))
+        sections.append("AUDIENCE PAIN (Karen): " + " | ".join(p['insight'] for p in pain_points))
 
     # Borat (Radar): opportunities
-    opps = conn.execute("""
+    cur.execute("""
     SELECT title, score FROM opportunities WHERE status='new'
     ORDER BY score DESC LIMIT 3
-    """).fetchall()
+    """)
+    opps = cur.fetchall()
     if opps:
-        sections.append("OPPORTUNITIES (Borat): " + " | ".join(f"{o[0]}({o[1]})" for o in opps))
+        sections.append("OPPORTUNITIES (Borat): " + " | ".join(f"{o['title']}({o['score']})" for o in opps))
 
     # Rick (Swipe): top patterns
-    top_formats = conn.execute("""
+    cur.execute("""
     SELECT content_format, COUNT(*) as c FROM swipe_file
     WHERE content_format != '' GROUP BY content_format ORDER BY c DESC LIMIT 2
-    """).fetchall()
+    """)
+    top_formats = cur.fetchall()
     if top_formats:
-        sections.append("SWIPE PATTERNS (Rick): " + " | ".join(f[0] for f in top_formats))
+        sections.append("SWIPE PATTERNS (Rick): " + " | ".join(f['content_format'] for f in top_formats))
 
     # Speed (Opinion): top questions
-    questions = conn.execute("""
+    cur.execute("""
     SELECT topic FROM opinion_topics WHERE type='question' AND used=0
     ORDER BY relevance_score DESC LIMIT 3
-    """).fetchall()
+    """)
+    questions = cur.fetchall()
     if questions:
-        sections.append("HOT QUESTIONS (Speed): " + " | ".join(q[0][:60] for q in questions))
+        sections.append("HOT QUESTIONS (Speed): " + " | ".join(q['topic'][:60] for q in questions))
 
     return "\n".join(sections) if sections else "No data yet — run research first."
 
@@ -109,7 +118,8 @@ Be SPECIFIC. Every point must be actionable. ~400 words."""
     brief = call_ollama(get_ollama_model(), prompt, system=DWIGHT_SYSTEM)
 
     # Save to daily_briefs table
-    conn.execute("INSERT INTO daily_briefs (body_md) VALUES (?)", (brief,))
+    cur = conn.cursor()
+    cur.execute("INSERT INTO daily_briefs (body_md) VALUES (%s)", (brief,))
     conn.commit()
     _log_routing_event()
     return brief
@@ -118,10 +128,12 @@ Be SPECIFIC. Every point must be actionable. ~400 words."""
 def get_latest_brief() -> str:
     """Get the most recent Daily Brief."""
     conn = get_db_connection()
-    row = conn.execute("""
+    cur = conn.cursor()
+    cur.execute("""
     SELECT body_md FROM daily_briefs ORDER BY created_at DESC LIMIT 1
-    """).fetchone()
-    return row[0] if row else "No brief generated yet. Run generate_daily_brief()."
+    """)
+    row = cur.fetchone()
+    return row["body_md"] if row else "No brief generated yet. Run generate_daily_brief()."
 
 
 def watch_upload_queue() -> dict:
@@ -143,7 +155,8 @@ def watch_upload_queue() -> dict:
 def _log_routing_event() -> None:
     try:
         conn = get_db_connection()
-        conn.execute("INSERT INTO employee_activity_log (employee,action,detail) VALUES (?,?,?)",
+        cur = conn.cursor()
+        cur.execute("INSERT INTO employee_activity_log (employee,action,detail) VALUES (%s,%s,%s)",
                      ("Dwight", "generate_daily_brief", "consumed: Chad+Peter+McLovin+Karen+Borat+Rick+Speed"))
         conn.commit()
     except Exception:

@@ -23,19 +23,21 @@ def classify_comment(text: str) -> dict:
 
 def analyze_comments(post_url: str) -> dict:
     conn = get_db_connection()
-    rows = conn.execute("""
+    cur = conn.cursor()
+    cur.execute("""
     SELECT id, body FROM comments
-    WHERE post_url=? AND analyzed_at IS NULL
+    WHERE post_url=%s AND analyzed_at IS NULL
     LIMIT 50
-    """, (post_url,)).fetchall()
+    """, (post_url,))
+    rows = cur.fetchall()
     counts = {"pain_point": 0, "faq": 0, "praise": 0, "request": 0, "other": 0}
     for row in rows:
         result = classify_comment(row["body"])
         cat = result.get("category", "other")
         sent = result.get("sentiment", "neutral")
-        conn.execute("""
-        UPDATE comments SET category=?, sentiment=?, analyzed_at=CURRENT_TIMESTAMP
-        WHERE id=?
+        cur.execute("""
+        UPDATE comments SET category=%s, sentiment=%s, analyzed_at=NOW()
+        WHERE id=%s
         """, (cat, sent, row["id"]))
         counts[cat] = counts.get(cat, 0) + 1
     conn.commit()
@@ -44,31 +46,35 @@ def analyze_comments(post_url: str) -> dict:
 
 def get_pain_points(limit: int = 10) -> list:
     conn = get_db_connection()
-    rows = conn.execute("""
+    cur = conn.cursor()
+    cur.execute("""
     SELECT insight, frequency, example_comment, generated_at
     FROM comment_insights WHERE category='pain_point'
-    ORDER BY frequency DESC LIMIT ?
-    """, (limit,)).fetchall()
-    return [dict(r) for r in rows]
+    ORDER BY frequency DESC LIMIT %s
+    """, (limit,))
+    return [dict(r) for r in cur.fetchall()]
 
 
 def get_content_requests() -> list:
     conn = get_db_connection()
-    rows = conn.execute("""
+    cur = conn.cursor()
+    cur.execute("""
     SELECT body FROM comments WHERE category='request'
     ORDER BY scraped_at DESC LIMIT 20
-    """).fetchall()
-    return [{"request": r[0]} for r in rows]
+    """)
+    return [{"request": r["body"]} for r in cur.fetchall()]
 
 
 def get_audience_language() -> list:
     conn = get_db_connection()
-    rows = conn.execute("""
+    cur = conn.cursor()
+    cur.execute("""
     SELECT body FROM comments ORDER BY scraped_at DESC LIMIT 100
-    """).fetchall()
+    """)
+    rows = cur.fetchall()
     if not rows:
         return []
-    all_text = " ".join(r[0] for r in rows)
+    all_text = " ".join(r["body"] for r in rows)
     prompt = f"""Extract 20 specific phrases that music producers use when talking about problems.
 Return a numbered list of exact phrases from this text:
 {all_text[:3000]}"""
@@ -80,8 +86,9 @@ Return a numbered list of exact phrases from this text:
 def _log_activity(action: str, detail: str = "") -> None:
     try:
         conn = get_db_connection()
-        conn.execute(
-            "INSERT INTO employee_activity_log (employee, action, detail) VALUES (?,?,?)",
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO employee_activity_log (employee, action, detail) VALUES (%s,%s,%s)",
             ("Karen", action, detail)
         )
         conn.commit()

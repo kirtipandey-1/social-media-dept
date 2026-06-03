@@ -17,3 +17,4 @@ ollama>=0.2
 matplotlib>=3.8
 seaborn>=0.13
 watchdog>=4.0
+psycopg2-binary>=2.9

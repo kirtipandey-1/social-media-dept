@@ -20,27 +20,30 @@ First line MUST be: "Score: [number]" """
 
 def scan_opportunities() -> dict:
     conn = get_db_connection()
+    cur = conn.cursor()
     s = load_settings()
     threshold = s.get("thresholds", {}).get("opportunity_alert_score", 75)
-    trends = conn.execute("""
+    cur.execute("""
     SELECT topic, source, signal_strength FROM trends
-    WHERE detected_at > datetime('now','-7 days')
+    WHERE detected_at > NOW() - INTERVAL '7 days'
     ORDER BY signal_strength DESC LIMIT 20
-    """).fetchall()
+    """)
+    trends = cur.fetchall()
     found = 0
     for trend in trends:
-        existing = conn.execute(
-            "SELECT id FROM opportunities WHERE title=? AND status='new'",
-            (trend[0],)
-        ).fetchone()
+        cur.execute(
+            "SELECT id FROM opportunities WHERE title=%s AND status='new'",
+            (trend["topic"],)
+        )
+        existing = cur.fetchone()
         if existing:
             continue
-        sc = score_topic(trend[0])
+        sc = score_topic(trend["topic"])
         if sc >= threshold:
-            conn.execute("""
+            cur.execute("""
             INSERT INTO opportunities (type, title, score, notes, status)
-            VALUES ('trend', ?, ?, ?, 'new')
-            """, (trend[0], sc, f"Source: {trend[1]}"))
+            VALUES ('trend', %s, %s, %s, 'new')
+            """, (trend["topic"], sc, f"Source: {trend['source']}"))
             found += 1
     conn.commit()
     _log_activity("scan_opportunities", f"found={found}")
@@ -49,12 +52,13 @@ def scan_opportunities() -> dict:
 
 def get_alerts() -> list:
     conn = get_db_connection()
-    rows = conn.execute("""
+    cur = conn.cursor()
+    cur.execute("""
     SELECT id, type, title, score, notes, source_url
     FROM opportunities WHERE status='new'
     ORDER BY score DESC LIMIT 10
-    """).fetchall()
-    return [dict(r) for r in rows]
+    """)
+    return [dict(r) for r in cur.fetchall()]
 
 
 def get_rising_creators(niche: str = "beatmaking") -> str:
@@ -70,8 +74,9 @@ def analyze_saved_collections() -> str:
 def _log_activity(action: str, detail: str = "") -> None:
     try:
         conn = get_db_connection()
-        conn.execute(
-            "INSERT INTO employee_activity_log (employee, action, detail) VALUES (?,?,?)",
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO employee_activity_log (employee, action, detail) VALUES (%s,%s,%s)",
             ("Borat", action, detail)
         )
         conn.commit()

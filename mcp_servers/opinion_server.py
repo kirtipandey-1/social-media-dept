@@ -21,10 +21,12 @@ def _parse_list(raw: str) -> list:
 
 def _save_topics(topics: list, topic_type: str, source: str = "speed") -> None:
     conn = get_db_connection()
+    cur = conn.cursor()
     for t in topics:
-        conn.execute("""
-        INSERT OR IGNORE INTO opinion_topics (topic, type, source, relevance_score)
-        VALUES (?, ?, ?, 0.5)
+        cur.execute("""
+        INSERT INTO opinion_topics (topic, type, source, relevance_score)
+        VALUES (%s, %s, %s, 0.5)
+        ON CONFLICT DO NOTHING
         """, (t, topic_type, source))
     conn.commit()
 
@@ -32,14 +34,16 @@ def _save_topics(topics: list, topic_type: str, source: str = "speed") -> None:
 def generate_questions(count: int = 25) -> list:
     """Generate discussion questions worth answering as content."""
     conn = get_db_connection()
+    cur = conn.cursor()
     # Pull recent Reddit pain points as context
     try:
-        reddit = conn.execute("""
+        cur.execute("""
         SELECT title FROM reddit_posts ORDER BY upvotes DESC LIMIT 10
-        """).fetchall()
+        """)
+        reddit = cur.fetchall()
     except Exception:
         reddit = []
-    context = "\n".join(f"- {r[0]}" for r in reddit) or "music production, beatmaking, mixing"
+    context = "\n".join(f"- {r['title']}" for r in reddit) or "music production, beatmaking, mixing"
 
     prompt = f"""Generate {count} SPECIFIC questions music producers are debating RIGHT NOW.
 These should start arguments in comments. Examples of the energy:
@@ -94,18 +98,20 @@ Make them spicy. Numbered list only."""
 def rank_opinion_opportunities(limit: int = 10) -> list:
     """Return top opinion topics ranked by relevance score."""
     conn = get_db_connection()
-    rows = conn.execute("""
+    cur = conn.cursor()
+    cur.execute("""
     SELECT topic, type, source, relevance_score, generated_at
     FROM opinion_topics WHERE used=0
-    ORDER BY relevance_score DESC, generated_at DESC LIMIT ?
-    """, (limit,)).fetchall()
-    return [dict(r) for r in rows]
+    ORDER BY relevance_score DESC, generated_at DESC LIMIT %s
+    """, (limit,))
+    return [dict(r) for r in cur.fetchall()]
 
 
 def _log_activity(action: str, detail: str = "") -> None:
     try:
         conn = get_db_connection()
-        conn.execute("INSERT INTO employee_activity_log (employee,action,detail) VALUES (?,?,?)",
+        cur = conn.cursor()
+        cur.execute("INSERT INTO employee_activity_log (employee,action,detail) VALUES (%s,%s,%s)",
                      ("Speed", action, detail))
         conn.commit()
     except Exception:

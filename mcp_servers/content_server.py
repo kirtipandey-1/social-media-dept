@@ -23,24 +23,26 @@ NICHE_SUBREDDITS = {
 
 def get_pain_points(niche: str = "beatmaking", limit: int = 10) -> list:
     conn = get_db_connection()
+    cur = conn.cursor()
     relevant = NICHE_SUBREDDITS.get(niche.lower(), [])
     if relevant:
-        placeholders = ",".join("?" * len(relevant))
-        rows = conn.execute(f"""
+        placeholders = ",".join(["%s"] * len(relevant))
+        cur.execute(f"""
         SELECT title, body, subreddit, upvotes, url
         FROM reddit_posts
         WHERE upvotes > 5 AND subreddit IN ({placeholders})
         ORDER BY upvotes DESC, scraped_at DESC
-        LIMIT ?
-        """, (*relevant, limit * 3)).fetchall()
+        LIMIT %s
+        """, (*relevant, limit * 3))
     else:
-        rows = conn.execute("""
+        cur.execute("""
         SELECT title, body, subreddit, upvotes, url
         FROM reddit_posts WHERE upvotes > 5
-        ORDER BY upvotes DESC, scraped_at DESC LIMIT ?
-        """, (limit * 3,)).fetchall()
-    return [{"title": r[0], "body": r[1], "subreddit": r[2],
-             "upvotes": r[3], "url": r[4]} for r in rows][:limit]
+        ORDER BY upvotes DESC, scraped_at DESC LIMIT %s
+        """, (limit * 3,))
+    rows = cur.fetchall()
+    return [{"title": r["title"], "body": r["body"], "subreddit": r["subreddit"],
+             "upvotes": r["upvotes"], "url": r["url"]} for r in rows][:limit]
 
 
 def generate_script(pain_point: str, duration_seconds: int = 60) -> dict:
@@ -69,9 +71,10 @@ def _parse_script(raw: str) -> dict:
 def _save_script(pain_point: str, script: dict) -> None:
     try:
         conn = get_db_connection()
-        conn.execute("""
+        cur = conn.cursor()
+        cur.execute("""
         INSERT INTO scripts (pain_point, hook, problem, insight, cta)
-        VALUES (?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s)
         """, [pain_point, script.get("hook", ""), script.get("problem", ""),
               script.get("insight", ""), script.get("cta", "")])
         conn.commit()
@@ -87,11 +90,12 @@ def get_script_ideas(count: int = 5) -> list:
 
 def get_saved_scripts(limit: int = 20) -> list:
     conn = get_db_connection()
-    rows = conn.execute("""
+    cur = conn.cursor()
+    cur.execute("""
     SELECT id, pain_point, hook, problem, insight, cta, generated_at
-    FROM scripts ORDER BY generated_at DESC LIMIT ?
-    """, (limit,)).fetchall()
-    return [dict(r) for r in rows]
+    FROM scripts ORDER BY generated_at DESC LIMIT %s
+    """, (limit,))
+    return [dict(r) for r in cur.fetchall()]
 
 
 try:

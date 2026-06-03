@@ -23,16 +23,18 @@ TASTE_CATEGORIES = [
 def cluster_saved_content() -> dict:
     """Cluster saved content into thematic categories."""
     conn = get_db_connection()
-    swipes = conn.execute("""
+    cur = conn.cursor()
+    cur.execute("""
     SELECT source_url, hook_text, topic, emotional_trigger, content_format, notes
     FROM swipe_file ORDER BY date_saved DESC LIMIT 100
-    """).fetchall()
+    """)
+    swipes = cur.fetchall()
 
     if not swipes:
         return {"analysis": "The swipe file is empty. Rick must gather content first.", "clusters": {}}
 
     content_summary = "\n".join(
-        f"- [{r[2] or 'unknown topic'}] {r[1] or ''} | trigger:{r[3] or '?'} | format:{r[4] or '?'}"
+        f"- [{r['topic'] or 'unknown topic'}] {r['hook_text'] or ''} | trigger:{r['emotional_trigger'] or '?'} | format:{r['content_format'] or '?'}"
         for r in swipes[:50]
     )
 
@@ -51,10 +53,11 @@ Return as structured analysis. Be wise and specific."""
     clusters = {}
     for cat in TASTE_CATEGORIES:
         cat_lower = cat.lower()
-        count = conn.execute("""
-        SELECT COUNT(*) FROM swipe_file
-        WHERE LOWER(topic) LIKE ? OR LOWER(notes) LIKE ? OR LOWER(hook_text) LIKE ?
-        """, (f"%{cat_lower}%", f"%{cat_lower}%", f"%{cat_lower}%")).fetchone()[0]
+        cur.execute("""
+        SELECT COUNT(*) AS n FROM swipe_file
+        WHERE LOWER(topic) LIKE %s OR LOWER(notes) LIKE %s OR LOWER(hook_text) LIKE %s
+        """, (f"%{cat_lower}%", f"%{cat_lower}%", f"%{cat_lower}%"))
+        count = cur.fetchone()["n"]
         if count > 0:
             clusters[cat] = count
 
@@ -65,19 +68,22 @@ Return as structured analysis. Be wise and specific."""
 def get_taste_evolution() -> str:
     """Analyze how creator taste is evolving over time."""
     conn = get_db_connection()
-    recent = conn.execute("""
+    cur = conn.cursor()
+    cur.execute("""
     SELECT topic, emotional_trigger, content_format FROM swipe_file
-    WHERE date_saved > datetime('now','-30 days')
+    WHERE date_saved > NOW() - INTERVAL '30 days'
     ORDER BY date_saved DESC LIMIT 30
-    """).fetchall()
-    older = conn.execute("""
+    """)
+    recent = cur.fetchall()
+    cur.execute("""
     SELECT topic, emotional_trigger, content_format FROM swipe_file
-    WHERE date_saved <= datetime('now','-30 days')
+    WHERE date_saved <= NOW() - INTERVAL '30 days'
     ORDER BY date_saved DESC LIMIT 30
-    """).fetchall()
+    """)
+    older = cur.fetchall()
 
-    recent_topics = [r[0] for r in recent if r[0]]
-    older_topics = [r[0] for r in older if r[0]]
+    recent_topics = [r["topic"] for r in recent if r["topic"]]
+    older_topics = [r["topic"] for r in older if r["topic"]]
 
     prompt = f"""Analyze the evolution of a music producer's taste over time.
 
@@ -122,7 +128,8 @@ Format as Markdown. ~500 words."""
 def _log_activity(action: str, detail: str = "") -> None:
     try:
         conn = get_db_connection()
-        conn.execute("INSERT INTO employee_activity_log (employee,action,detail) VALUES (?,?,?)",
+        cur = conn.cursor()
+        cur.execute("INSERT INTO employee_activity_log (employee,action,detail) VALUES (%s,%s,%s)",
                      ("Gandalf", action, detail))
         conn.commit()
     except Exception:

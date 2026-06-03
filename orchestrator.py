@@ -23,8 +23,9 @@ def _log_routing(source: str, target: str, detail: str = "") -> None:
     try:
         from db.sqlite_db import get_connection
         conn = get_connection()
-        conn.execute(
-            "INSERT INTO employee_activity_log (employee, action, detail) VALUES (?,?,?)",
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO employee_activity_log (employee, action, detail) VALUES (%s,%s,%s)",
             (source, f"→ {target}", detail)
         )
         conn.commit()
@@ -54,13 +55,15 @@ def run_pipeline(send_telegram: bool = True) -> None:
     # Phase 2: AI intelligence layer
     from db.sqlite_db import get_connection
     conn = get_connection()
+    cur = conn.cursor()
 
     log.info("--- Karen (Comments) analyzing ---")
     from mcp_servers.comments_server import analyze_comments
-    unanalyzed = conn.execute(
+    cur.execute(
         "SELECT DISTINCT post_url FROM comments WHERE analyzed_at IS NULL LIMIT 20"
-    ).fetchall()
-    urls = [row[0] for row in unanalyzed] or ["latest"]
+    )
+    unanalyzed = cur.fetchall()
+    urls = [row["post_url"] for row in unanalyzed] or ["latest"]
     for url in urls:
         try:
             analyze_comments(url)
@@ -70,10 +73,11 @@ def run_pipeline(send_telegram: bool = True) -> None:
 
     log.info("--- Peter (Hooks) generating ---")
     from mcp_servers.hooks_server import generate_hooks
-    recent_trends = conn.execute(
+    cur.execute(
         "SELECT topic FROM trends ORDER BY detected_at DESC LIMIT 3"
-    ).fetchall()
-    topics = [t[0] for t in recent_trends] or ["music production", "beatmaking", "mixing"]
+    )
+    recent_trends = cur.fetchall()
+    topics = [t["topic"] for t in recent_trends] or ["music production", "beatmaking", "mixing"]
     for topic in topics:
         try:
             generate_hooks(topic, count=10)

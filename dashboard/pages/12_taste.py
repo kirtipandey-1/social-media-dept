@@ -42,13 +42,16 @@ with tab2:
 with tab3:
     from db.sqlite_db import get_connection
     conn = get_connection()
-    rows = conn.execute("""
+    cur = conn.cursor()
+    cur.execute("""
     SELECT hook_text, platform, views, saves, engagement_rate
     FROM hook_performance ORDER BY views DESC LIMIT 10
-    """).fetchall()
+    """)
+    rows = cur.fetchall()
     if rows:
         import pandas as pd
-        df = pd.DataFrame(rows, columns=["Hook","Platform","Views","Saves","Engagement"])
+        df = pd.DataFrame([dict(r) for r in rows])
+        df.columns = ["Hook","Platform","Views","Saves","Engagement"]
         st.dataframe(df, use_container_width=True)
     else:
         st.info("No hook performance data yet.")

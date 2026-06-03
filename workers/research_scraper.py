@@ -47,17 +47,21 @@ def fetch_reddit_rss(subreddit: str, limit: int = 25) -> list:
 def save_reddit_posts(conn, posts: list) -> int:
     """Persist Reddit posts to SQLite. Returns count saved."""
     saved = 0
+    cur = conn.cursor()
     for p in posts:
         try:
-            conn.execute("""
-            INSERT OR IGNORE INTO reddit_posts
+            cur.execute("""
+            INSERT INTO reddit_posts
                 (reddit_id, subreddit, title, body, url, upvotes, num_comments, posted_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT DO NOTHING
             """, [p["reddit_id"], p["subreddit"], p["title"], p["body"],
                   p["url"], p.get("upvotes", 0), p.get("num_comments", 0),
                   p.get("posted_at")])
+            conn.commit()
             saved += 1
         except Exception as e:
+            conn.rollback()
             log.warning("Skip reddit post %s: %s", p.get("reddit_id"), e)
     conn.commit()
     return saved
@@ -101,26 +105,31 @@ from db.sqlite_db import get_connection
 
 def save_competitor_posts(conn, handle: str, posts: list) -> int:
     """Persist competitor posts. Returns count saved."""
-    row = conn.execute(
-        "SELECT id FROM competitors WHERE handle=?", (handle,)
-    ).fetchone()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT id FROM competitors WHERE handle=%s", (handle,)
+    )
+    row = cur.fetchone()
     if not row:
         log.warning("Competitor @%s not in DB, skipping", handle)
         return 0
-    competitor_id = row[0]
+    competitor_id = row["id"]
     saved = 0
     for p in posts:
         try:
-            conn.execute("""
-            INSERT OR IGNORE INTO competitor_posts
+            cur.execute("""
+            INSERT INTO competitor_posts
                 (competitor_id, post_url, caption, thumbnail_url, ai_analysis, views, likes, comments, saves)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT DO NOTHING
             """, [competitor_id, p["post_url"], p.get("caption", ""),
                   p.get("thumbnail_url", ""), p.get("ai_analysis", ""),
                   p.get("views", 0), p.get("likes", 0),
                   p.get("comments", 0), p.get("saves", 0)])
+            conn.commit()
             saved += 1
         except Exception as e:
+            conn.rollback()
             log.warning("Skip post %s: %s", p.get("post_url"), e)
     conn.commit()
     return saved

@@ -10,3 +10,4 @@ __pycache__/
 # db files are committed so Streamlit Cloud has data
 # db/social.db
 # db/analytics.duckdb
+.streamlit/secrets.toml
