@@ -41,7 +41,8 @@ def get_recent_reddit(limit=20):
     conn = get_connection()
     rows = conn.execute("""
     SELECT title, subreddit, upvotes, url, posted_at
-    FROM reddit_posts ORDER BY posted_at DESC LIMIT ?
+    FROM reddit_posts
+    ORDER BY upvotes DESC, posted_at DESC LIMIT ?
     """, (limit,)).fetchall()
     return [dict(r) for r in rows]
 

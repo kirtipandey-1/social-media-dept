@@ -8,9 +8,11 @@ log = logging.getLogger("research_scraper")
 
 
 def fetch_reddit_rss(subreddit: str, limit: int = 25) -> list:
-    """Fetch top posts from a subreddit via RSS (no credentials needed)."""
-    url = f"https://www.reddit.com/r/{subreddit}/hot.rss?limit={limit}"
-    feed = feedparser.parse(url)
+    """Fetch top posts from a subreddit via RSS, sorted by weekly top + upvotes."""
+    import re as _re
+    url = f"https://www.reddit.com/r/{subreddit}/top.rss?t=week&limit={limit}"
+    headers = {"User-Agent": "social-media-dept/1.0 research-bot"}
+    feed = feedparser.parse(url, request_headers=headers)
     posts = []
     for entry in feed.entries[:limit]:
         link = getattr(entry, "link", "")
@@ -21,13 +23,21 @@ def fetch_reddit_rss(subreddit: str, limit: int = 25) -> list:
 
         pt = getattr(entry, "published_parsed", None)
         posted_at = datetime.fromtimestamp(mktime(pt)).isoformat() if pt else None
+
+        # Parse upvotes from summary HTML: "1,234 points"
+        summary = getattr(entry, "summary", "")
+        upvotes = 0
+        m = _re.search(r"([\d,]+)\s+point", summary)
+        if m:
+            upvotes = int(m.group(1).replace(",", ""))
+
         posts.append({
             "reddit_id": reddit_id,
             "subreddit": subreddit,
             "title": getattr(entry, "title", ""),
-            "body": getattr(entry, "summary", ""),
+            "body": summary,
             "url": link,
-            "upvotes": 0,
+            "upvotes": upvotes,
             "num_comments": 0,
             "posted_at": posted_at,
         })
@@ -113,6 +123,52 @@ def save_competitor_posts(conn, handle: str, posts: list) -> int:
     return saved
 
 
+def scrape_competitor_profile(handle: str, limit: int = 12) -> list:
+    """Scrape public posts from a competitor Instagram profile via Playwright."""
+    posts = []
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        ctx_kwargs = {}
+        if COOKIES_PATH.exists():
+            ctx_kwargs["storage_state"] = str(COOKIES_PATH)
+        ctx = browser.new_context(**ctx_kwargs)
+        page = ctx.new_page()
+        try:
+            page.goto(
+                f"https://www.instagram.com/{handle}/",
+                wait_until="networkidle",
+                timeout=30000
+            )
+            # Detect cookie expiry (redirect to login)
+            if "accounts/login" in page.url:
+                raise RuntimeError(
+                    f"Instagram session expired. Run scripts/export_cookies.sh"
+                )
+            links = page.eval_on_selector_all(
+                "main a[href*='/p/'], main a[href*='/reel/']",
+                "els => [...new Set(els.map(e => e.href.split('?')[0]))]"
+            )[:limit]
+            if not links:
+                log.warning(
+                    "No post/reel links found for @%s (selector may need updating or session is limited)",
+                    handle,
+                )
+
+            for url in links:
+                try:
+                    page.goto(url, wait_until="networkidle", timeout=20000)
+                    caption_el = page.query_selector(
+                        "h1, [data-testid='post-comment-root'] span"
+                    )
+                    caption = caption_el.inner_text() if caption_el else ""
+                    posts.append(parse_post_element({"url": url, "caption": caption}))
+                except Exception as e:
+                    log.warning("Error scraping %s: %s", url, e)
+        finally:
+            browser.close()
+    return posts
+
+
 class ResearchScraper(BaseWorker):
     name = "research_scraper"
 
@@ -144,44 +200,3 @@ class ResearchScraper(BaseWorker):
 
 if __name__ == "__main__":
     ResearchScraper().execute()
-
-
-def scrape_competitor_profile(handle: str, limit: int = 12) -> list:
-    """Scrape public posts from a competitor Instagram profile via Playwright."""
-    posts = []
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        ctx_kwargs = {}
-        if COOKIES_PATH.exists():
-            ctx_kwargs["storage_state"] = str(COOKIES_PATH)
-        ctx = browser.new_context(**ctx_kwargs)
-        page = ctx.new_page()
-        try:
-            page.goto(
-                f"https://www.instagram.com/{handle}/",
-                wait_until="networkidle",
-                timeout=30000
-            )
-            # Detect cookie expiry (redirect to login)
-            if "accounts/login" in page.url:
-                raise RuntimeError(
-                    f"Instagram session expired. Run scripts/export_cookies.sh"
-                )
-            links = page.eval_on_selector_all(
-                "article a[href*='/p/']",
-                "els => els.map(e => e.href)"
-            )[:limit]
-
-            for url in links:
-                try:
-                    page.goto(url, wait_until="networkidle", timeout=20000)
-                    caption_el = page.query_selector(
-                        "h1, [data-testid='post-comment-root'] span"
-                    )
-                    caption = caption_el.inner_text() if caption_el else ""
-                    posts.append(parse_post_element({"url": url, "caption": caption}))
-                except Exception as e:
-                    log.warning("Error scraping %s: %s", url, e)
-        finally:
-            browser.close()
-    return posts

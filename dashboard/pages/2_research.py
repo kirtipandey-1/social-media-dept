@@ -29,15 +29,18 @@ with tab1:
         st.info("No competitor data yet. Click 'Run Research Now'.")
 
 with tab2:
-    posts = get_recent_reddit(20)
+    posts = get_recent_reddit(30)
     if posts:
         for p in posts:
-            st.markdown(f"**r/{p['subreddit']}** · {p.get('upvotes',0)} upvotes")
+            upvotes = p.get('upvotes', 0)
+            badge = "🔥" if upvotes > 500 else ("⬆️" if upvotes > 100 else "")
+            st.markdown(f"**r/{p['subreddit']}** {badge} · **{upvotes:,} upvotes**")
             st.write(p["title"])
-            if p.get("url"): st.caption(p["url"])
+            if p.get("url"):
+                st.caption(p["url"])
             st.markdown("---")
     else:
-        st.info("No Reddit data yet.")
+        st.info("No Reddit data yet. Click 'Run Research Now'.")
 
 with tab3:
     trends = get_recent_trends(20)

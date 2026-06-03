@@ -8,7 +8,20 @@ youtube   = []
 facebook  = []
 
 [reddit]
-subreddits = ["WeAreTheMusicMakers","beatmakers","makinghiphop","edmproduction","DJs","ableton"]
+subreddits = [
+  "WeAreTheMusicMakers",
+  "beatmakers",
+  "makinghiphop",
+  "hiphopheads",
+  "boom_bap",
+  "90sHipHop",
+  "undergroundhiphop",
+  "Griselda",
+  "RocMarciano",
+  "vinyl",
+  "lofi",
+  "samplesfortheculture"
+]
 
 [instagram_saved]
 collections = ["content","marketing/promo"]
