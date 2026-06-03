@@ -4,6 +4,20 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 import streamlit as st
 
+# Auto-initialize databases on first run (needed on Streamlit Cloud)
+try:
+    from db.sqlite_db import get_connection, init_schema
+    _conn = get_connection()
+    init_schema(_conn)
+except Exception:
+    pass
+try:
+    from db.duckdb_db import get_connection as dq_conn, init_schema as dq_init
+    _dq = dq_conn()
+    dq_init(_dq)
+except Exception:
+    pass
+
 st.set_page_config(
     page_title="Social Media Dept",
     page_icon="🎵",

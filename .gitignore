@@ -7,5 +7,6 @@ __pycache__/
 .env
 *.log
 .DS_Store
-db/social.db
-db/analytics.duckdb
+# db files are committed so Streamlit Cloud has data
+# db/social.db
+# db/analytics.duckdb

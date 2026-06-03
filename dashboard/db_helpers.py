@@ -8,7 +8,20 @@ from db.sqlite_db import get_connection
 from db.duckdb_db import get_connection as dq_conn
 
 
+def _safe_query(fn):
+    """Decorator: return [] on any DB error (missing table, empty DB, etc)."""
+    import functools
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except Exception:
+            return []
+    return wrapper
+
+
 @st.cache_data(ttl=300)
+@_safe_query
 def get_recent_trends(limit=20):
     conn = get_connection()
     rows = conn.execute("""
@@ -18,6 +31,7 @@ def get_recent_trends(limit=20):
     return [dict(r) for r in rows]
 
 @st.cache_data(ttl=300)
+@_safe_query
 def get_competitor_posts(limit=30):
     conn = get_connection()
     rows = conn.execute("""
@@ -29,6 +43,7 @@ def get_competitor_posts(limit=30):
     return [dict(r) for r in rows]
 
 @st.cache_data(ttl=300)
+@_safe_query
 def get_top_opportunities(limit=10):
     conn = get_connection()
     rows = conn.execute("""
@@ -38,6 +53,7 @@ def get_top_opportunities(limit=10):
     return [dict(r) for r in rows]
 
 @st.cache_data(ttl=300)
+@_safe_query
 def get_recent_reddit(limit=20):
     conn = get_connection()
     rows = conn.execute("""
@@ -49,21 +65,27 @@ def get_recent_reddit(limit=20):
 
 @st.cache_data(ttl=60)
 def get_latest_report(report_type="daily"):
-    conn = get_connection()
-    row = conn.execute("""
-    SELECT body_md, created_at FROM reports WHERE type=?
-    ORDER BY created_at DESC LIMIT 1
-    """, (report_type,)).fetchone()
-    return dict(row) if row else None
+    try:
+        conn = get_connection()
+        row = conn.execute("""
+        SELECT body_md, created_at FROM reports WHERE type=?
+        ORDER BY created_at DESC LIMIT 1
+        """, (report_type,)).fetchone()
+        return dict(row) if row else None
+    except Exception:
+        return None
 
 @st.cache_data(ttl=60)
 def get_latest_daily_brief():
-    conn = get_connection()
-    row = conn.execute("""
-    SELECT body_md, created_at FROM daily_briefs
-    ORDER BY created_at DESC LIMIT 1
-    """).fetchone()
-    return dict(row) if row else None
+    try:
+        conn = get_connection()
+        row = conn.execute("""
+        SELECT body_md, created_at FROM daily_briefs
+        ORDER BY created_at DESC LIMIT 1
+        """).fetchone()
+        return dict(row) if row else None
+    except Exception:
+        return None
 
 @st.cache_data(ttl=300)
 def get_post_performance(limit=20):
@@ -79,6 +101,7 @@ def get_post_performance(limit=20):
     except Exception:
         return []
 
+@_safe_query
 def get_scripts(limit=20):
     conn = get_connection()
     rows = conn.execute("""
@@ -87,6 +110,7 @@ def get_scripts(limit=20):
     """, (limit,)).fetchall()
     return [dict(r) for r in rows]
 
+@_safe_query
 def get_pain_points_from_insights(limit=10):
     conn = get_connection()
     rows = conn.execute("""
@@ -95,6 +119,7 @@ def get_pain_points_from_insights(limit=10):
     """, (limit,)).fetchall()
     return [dict(r) for r in rows]
 
+@_safe_query
 def get_swipe_file(limit=20):
     conn = get_connection()
     rows = conn.execute("""
@@ -104,6 +129,7 @@ def get_swipe_file(limit=20):
     """, (limit,)).fetchall()
     return [dict(r) for r in rows]
 
+@_safe_query
 def get_opinion_topics(limit=20):
     conn = get_connection()
     rows = conn.execute("""
@@ -112,6 +138,7 @@ def get_opinion_topics(limit=20):
     """, (limit,)).fetchall()
     return [dict(r) for r in rows]
 
+@_safe_query
 def get_employee_activity(limit=30):
     conn = get_connection()
     rows = conn.execute("""
@@ -123,23 +150,26 @@ def get_employee_activity(limit=30):
 @st.cache_data(ttl=120)
 def get_suggested_topics(limit=10) -> list:
     """Return suggested hook topics from recent Reddit + trends data."""
-    conn = get_connection()
-    trend_rows = conn.execute("""
-    SELECT topic FROM trends
-    ORDER BY detected_at DESC LIMIT 20
-    """).fetchall()
-    reddit_rows = conn.execute("""
-    SELECT title FROM reddit_posts
-    WHERE scraped_at > datetime('now','-7 days')
-    ORDER BY upvotes DESC LIMIT 30
-    """).fetchall()
-    topics = []
-    for r in trend_rows:
-        t = r[0].strip() if r[0] else ""
-        if t and t not in topics:
-            topics.append(t)
-    for r in reddit_rows:
-        t = (r[0] or "").strip()[:60]
-        if t and t not in topics:
-            topics.append(t)
-    return topics[:limit]
+    try:
+        conn = get_connection()
+        trend_rows = conn.execute("""
+        SELECT topic FROM trends
+        ORDER BY detected_at DESC LIMIT 20
+        """).fetchall()
+        reddit_rows = conn.execute("""
+        SELECT title FROM reddit_posts
+        WHERE scraped_at > datetime('now','-7 days')
+        ORDER BY upvotes DESC LIMIT 30
+        """).fetchall()
+        topics = []
+        for r in trend_rows:
+            t = r[0].strip() if r[0] else ""
+            if t and t not in topics:
+                topics.append(t)
+        for r in reddit_rows:
+            t = (r[0] or "").strip()[:60]
+            if t and t not in topics:
+                topics.append(t)
+        return topics[:limit]
+    except Exception:
+        return []
