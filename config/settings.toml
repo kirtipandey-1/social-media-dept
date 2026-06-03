@@ -1,0 +1,54 @@
+[telegram]
+bot_token = ""
+chat_id   = ""
+
+[competitors]
+instagram = ["sndtrak","mpcchop","jwaynic","madkeys_","impreshn","viddyondabeat","isaintjames","beatsbyjblack"]
+youtube   = []
+
+[reddit]
+subreddits = ["WeAreTheMusicMakers","beatmakers","makinghiphop","edmproduction","DJs","ableton"]
+
+[instagram_saved]
+collections = ["content","marketing/promo"]
+
+[ollama]
+model        = "llama3.1:8b"
+vision_model = "llava"
+base_url     = "http://localhost:11434"
+
+[thresholds]
+opportunity_alert_score = 75
+competitor_viral_views  = 500000
+
+[dashboard]
+host = "0.0.0.0"
+port = 8501
+
+[employees.research_scraper]
+type    = "worker"
+enabled = true
+
+[employees.analytics_ingest]
+type    = "worker"
+enabled = true
+
+[employees.hooks_server]
+type    = "mcp_server"
+enabled = true
+
+[employees.comments_server]
+type    = "mcp_server"
+enabled = true
+
+[employees.radar_server]
+type    = "mcp_server"
+enabled = true
+
+[employees.reports_server]
+type    = "mcp_server"
+enabled = true
+
+[employees.content_server]
+type    = "mcp_server"
+enabled = true
