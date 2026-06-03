@@ -71,3 +71,26 @@ def test_parse_post_element_handles_millions():
     from workers.research_scraper import parse_post_element
     result = parse_post_element({"url": "http://x", "views": "1.2M"})
     assert result["views"] == 1_200_000
+
+# ─── Task 10: ResearchScraper class ──────────────────────────────────────────
+
+def test_save_competitor_posts(tmp_path):
+    from workers.research_scraper import save_competitor_posts
+    from db.sqlite_db import get_connection, init_schema, seed_competitors
+    conn = get_connection(str(tmp_path / "t.db"))
+    init_schema(conn)
+    seed_competitors(conn, ["sndtrak"], "instagram")
+    posts = [{"post_url": "https://instagram.com/p/abc", "caption": "test",
+               "views": 1000, "likes": 50, "comments": 10, "saves": 20}]
+    saved = save_competitor_posts(conn, "sndtrak", posts)
+    assert saved == 1
+    row = conn.execute("SELECT views FROM competitor_posts").fetchone()
+    assert row[0] == 1000
+
+def test_save_competitor_posts_skips_unknown_handle(tmp_path):
+    from workers.research_scraper import save_competitor_posts
+    from db.sqlite_db import get_connection, init_schema
+    conn = get_connection(str(tmp_path / "t.db"))
+    init_schema(conn)
+    result = save_competitor_posts(conn, "nobody_handle", [{"post_url": "http://x"}])
+    assert result == 0

@@ -82,6 +82,70 @@ def parse_post_element(el: dict) -> dict:
     }
 
 
+from workers.base_worker import BaseWorker
+from config import load_settings
+from db.sqlite_db import get_connection
+
+
+def save_competitor_posts(conn, handle: str, posts: list) -> int:
+    """Persist competitor posts. Returns count saved."""
+    row = conn.execute(
+        "SELECT id FROM competitors WHERE handle=?", (handle,)
+    ).fetchone()
+    if not row:
+        log.warning("Competitor @%s not in DB, skipping", handle)
+        return 0
+    competitor_id = row[0]
+    saved = 0
+    for p in posts:
+        try:
+            conn.execute("""
+            INSERT OR IGNORE INTO competitor_posts
+                (competitor_id, post_url, caption, views, likes, comments, saves)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, [competitor_id, p["post_url"], p.get("caption", ""),
+                  p.get("views", 0), p.get("likes", 0),
+                  p.get("comments", 0), p.get("saves", 0)])
+            saved += 1
+        except Exception as e:
+            log.warning("Skip post %s: %s", p.get("post_url"), e)
+    conn.commit()
+    return saved
+
+
+class ResearchScraper(BaseWorker):
+    name = "research_scraper"
+
+    def run(self) -> str:
+        s = load_settings()
+        conn = get_connection()
+        total_reddit = 0
+        for sub in s.get("reddit", {}).get("subreddits", []):
+            try:
+                posts = fetch_reddit_rss(sub)
+                n = save_reddit_posts(conn, posts)
+                total_reddit += n
+                log.info("Reddit r/%s: %d posts saved", sub, n)
+            except Exception as e:
+                log.error("Reddit r/%s failed: %s", sub, e)
+
+        total_ig = 0
+        for handle in s.get("competitors", {}).get("instagram", []):
+            try:
+                posts = scrape_competitor_profile(handle)
+                n = save_competitor_posts(conn, handle, posts)
+                total_ig += n
+                log.info("Instagram @%s: %d posts saved", handle, n)
+            except Exception as e:
+                log.error("Instagram @%s failed: %s", handle, e)
+
+        return f"Reddit:{total_reddit} Instagram:{total_ig}"
+
+
+if __name__ == "__main__":
+    ResearchScraper().execute()
+
+
 def scrape_competitor_profile(handle: str, limit: int = 12) -> list:
     """Scrape public posts from a competitor Instagram profile via Playwright."""
     posts = []
